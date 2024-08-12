@@ -65,4 +65,4 @@ class OtpVerify(models.Model):
     otp = models.IntegerField()
 
     def __str__(self):
-        return str(self.user)  
+        return str(self.user)

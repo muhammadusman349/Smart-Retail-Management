@@ -19,12 +19,3 @@ urlpatterns = [
     path('token-refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
     path('', include(router.urls)),
 ]
-# urlpatterns = [
-#     path("register/",                   SignupView.as_view(),              name='register'),
-#     path("login/",                      LoginApiView.as_view(),                 name='login'),
-#     path('logout/',                     LogoutAPIView.as_view(),                name='logout'),
-#     path('token-refresh/',              jwt_views.TokenRefreshView.as_view(),   name='token_refresh'),
-#     path('changepassword/',             ChangePasswordView.as_view(),           name='change-password'),
-#     path('forget/password/',            ForgetPasswordView.as_view(),           name='forget-password'),
-#     path('reset/password/',             ResetPasswordView.as_view(),            name='reset-password'),
-# ]

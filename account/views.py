@@ -1,6 +1,10 @@
 from rest_framework import status, viewsets
 from rest_framework.response import Response
-from .serializers import SignupSerializer, LoginSerializer, ChangePasswordSerializer, ForgetPasswordSerializer, ResetPasswordSerializer
+from .serializers import (
+                SignupSerializer, LoginSerializer,
+                ChangePasswordSerializer, ForgetPasswordSerializer,
+                ResetPasswordSerializer
+                )
 from django.contrib.auth import logout
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import User
@@ -22,6 +26,7 @@ class LoginView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def create(self, request):
         serializer = self.serializer_class(
@@ -39,11 +44,10 @@ class LogoutView(viewsets.ModelViewSet):
         return Response({"msg":"Successfully Logged out"},status=status.HTTP_200_OK)
 
 
-
 class ChangePasswordView(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ChangePasswordSerializer
-
+    authentication_classes = []
 
     def create(self, request):
         serializer = self.serializer_class(data=request.data, context={
@@ -54,10 +58,10 @@ class ChangePasswordView(viewsets.GenericViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class ForgetPasswordView(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     serializer_class = ForgetPasswordSerializer
+    authentication_classes = []
 
     def create(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -66,10 +70,10 @@ class ForgetPasswordView(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class ResetPasswordView(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     serializer_class = ResetPasswordSerializer
+    authentication_classes = []
 
     def create(self, request):
         serializer = self.serializer_class(data=request.data)

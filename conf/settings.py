@@ -186,8 +186,6 @@ CELERY_RESULT_BACKEND = "django-db"
 # broker_connections_retry_on_startup
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler" 
-
 # Optional Celery settings
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
