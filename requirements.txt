@@ -7,3 +7,6 @@ celery==5.4.0
 redis==5.0.8
 django-celery-beat==2.5.0
 django-celery-results==2.4.0
+django-channels==0.7.0
+requests==2.32.3
+paho-mqtt==2.1.0
