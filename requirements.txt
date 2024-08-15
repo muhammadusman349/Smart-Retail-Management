@@ -10,3 +10,6 @@ django-celery-results==2.4.0
 django-channels==0.7.0
 requests==2.32.3
 paho-mqtt==2.1.0
+joblib==1.4.2
+numpy==2.0.1
+scikit-learn==1.5.1
