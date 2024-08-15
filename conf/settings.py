@@ -177,7 +177,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 EMAIL_HOST_USER = 'm.maher0044@gmail.com'
-EMAIL_HOST_PASSWORD = "qaqb fyme xkoo iogg"
+EMAIL_HOST_PASSWORD = "ooep jzeq roud cptl"
 DEFAULT_FROM_EMAIL = 'm.maher0044@gmail.com'
 
 # Celery settings
