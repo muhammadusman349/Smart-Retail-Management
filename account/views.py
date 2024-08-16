@@ -34,7 +34,6 @@ class UserRoleUpdateView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-
         # Send an email notification role is updated to 'staff' or 'manager'
         if instance.role in ['staff', 'manager']:
             send_role_update_email.delay(instance.email, instance.role)
