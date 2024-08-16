@@ -5,7 +5,7 @@ from .models import Product, Order
 
 class ProductAdmin(admin.ModelAdmin):
     search_fields = ['id', 'name', 'status']
-    list_display = ['id', 'name', 'price', 'created_at', 'updated_at']
+    list_display = ['id', 'name', 'price', 'low_stock_alert', 'created_at', 'updated_at']
 
 
 class OrderAdmin(admin.ModelAdmin):

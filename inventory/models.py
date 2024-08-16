@@ -9,8 +9,9 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField()
-    location = models.CharField(max_length=255, blank=True, null=True)
     stock_level = models.IntegerField()
+    reorder_point = models.IntegerField(default=10)
+    low_stock_alert = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
