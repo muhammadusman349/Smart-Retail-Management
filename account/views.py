@@ -1,13 +1,51 @@
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, permissions, mixins
 from rest_framework.response import Response
 from .serializers import (
+                UserSerializer, UserRoleUpdateSerializer,
                 SignupSerializer, LoginSerializer,
                 ChangePasswordSerializer, ForgetPasswordSerializer,
                 ResetPasswordSerializer
                 )
 from django.contrib.auth import logout
+from django.core.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import User
+from .tasks import send_role_update_email
+
+
+class UserView(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """
+        Allow only admins to create, update, or delete users.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            self.permission_classes = [permissions.IsAdminUser]
+        return super().get_permissions()
+
+
+class UserRoleUpdateView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserRoleUpdateSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+
+        # Send an email notification role is updated to 'staff' or 'manager'
+        if instance.role in ['staff', 'manager']:
+            send_role_update_email.delay(instance.email, instance.role)
+
+    def get_object(self):
+        user = super().get_object()
+        request = self.request
+        # only an admin can change the user role
+        if not request.user.is_superuser:
+            raise PermissionDenied("Only an admin can change the user role.")
+        return user
 
 
 class SignupView(viewsets.ModelViewSet):

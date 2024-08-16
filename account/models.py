@@ -1,4 +1,5 @@
 from django.db import models
+from account import USER_ROLE_CHOICES
 from django.contrib.auth.models import (
         AbstractBaseUser,
         BaseUserManager,
@@ -31,7 +32,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-
+    role = models.CharField(max_length=20, choices=USER_ROLE_CHOICES, default='customer')
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=50, unique=True, db_index=True)

@@ -1,11 +1,13 @@
 import pyotp
 import base64
+from django.core.exceptions import PermissionDenied
 from rest_framework import serializers, status
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, OtpVerify
 from datetime import datetime
 from django.utils import timezone
 from account.tasks import send_email
+from account import USER_ROLE_CHOICES
 
 
 class generateKey:
@@ -17,7 +19,43 @@ class generateKey:
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'profile_picture',  'email']
+        fields = [
+            'id',
+            'first_name',
+            'last_name',
+            'email',
+            'profile_picture',
+            'role',
+            'is_verified',
+            'is_active',
+            'is_approved',
+            'is_owner',
+            'is_staff',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'role', 'is_verified', 'is_active', 'is_approved', 'is_owner', 'is_staff', 'created_at', 'updated_at']
+
+
+class UserRoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['role']
+
+    def validate_role(self, value):
+        valid_roles = [choice[0] for choice in USER_ROLE_CHOICES]
+        if value not in valid_roles:
+            raise serializers.ValidationError("Invalid role selection.")
+        return value
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request', None)
+        if not request.user.is_superuser:
+            raise PermissionDenied("Only an admin can change the user role.")
+
+        instance.role = validated_data['role']
+        instance.save()
+        return instance
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -55,6 +93,7 @@ class SignupSerializer(serializers.ModelSerializer):
                         last_name=validated_data['last_name'],
                         email=validated_data['email'],
                         profile_picture=profile_picture,
+                        role='customer',
                         is_verified=True,
                         is_active=True,
                         is_approved=True,
