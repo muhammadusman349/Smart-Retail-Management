@@ -42,16 +42,17 @@ class UserRoleUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['role']
 
-    def validate_role(self, value):
+    def validate(self, attrs):
         valid_roles = [choice[0] for choice in USER_ROLE_CHOICES]
-        if value not in valid_roles:
-            raise serializers.ValidationError("Invalid role selection.")
-        return value
+        if attrs not in valid_roles:
+            raise serializers.ValidationError("Role is Required!")
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
-        request = self.context.get('request', None)
-        if not request.user.is_superuser:
-            raise PermissionDenied("Only an admin can change the user role.")
+        new_role = validated_data.get('role')
+        # Check if the new role is the same as the current role
+        if instance.role == new_role:
+            raise serializers.ValidationError({"error": "This role is already assigned ! Select another role."}, status=status.HTTP_400_BAD_REQUEST)
 
         instance.role = validated_data['role']
         instance.save()
