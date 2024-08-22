@@ -51,6 +51,7 @@ class SignupView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = SignupSerializer
+    authentication_classes = []
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

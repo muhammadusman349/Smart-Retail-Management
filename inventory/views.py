@@ -2,13 +2,14 @@ from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Product, Order
 from .serializers import ProductSerializer, OrderSerializer
 from .tasks import (
     send_order_confirmation,
     update_stock_levels,
     update_order_status,
-    check_and_update_inventory,
+    check_and_update_low_stock_alert,
     send_new_product_notification
 )
 
@@ -18,16 +19,24 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = []
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            if user.is_owner:
+                return Product.objects.filter(owner=user)
+            else:
+                return Product.objects.all()
+        else:
+            return Product.objects.none()
+
     def perform_create(self, serializer):
-        product = serializer.save()
-        # inventory check and product notification
-        check_and_update_inventory.delay(product.id)
+        product = serializer.save(owner=self.request.user)
+        check_and_update_low_stock_alert.delay(product.id)
         send_new_product_notification.delay(product.id)
 
     def perform_update(self, serializer):
         product = serializer.save()
-        # check and update inventory after the update
-        check_and_update_inventory.delay(product.id)
+        check_and_update_low_stock_alert.delay(product.id)
 
     @action(detail=False, methods=['post'])
     def update_stock(self, request, pk=None):
@@ -41,15 +50,15 @@ class ProductViewSet(viewsets.ModelViewSet):
             product = Product.objects.get(id=product_id)
             product.quantity += int(quantity)
             product.save()
-            # update inventory
-            check_and_update_inventory.delay(product.id)
+            # check_and_update_low_stock_alert
+            check_and_update_low_stock_alert.delay(product.id)
             return Response({'status': 'Stock updated successfully'}, status=status.HTTP_200_OK)
         except Product.DoesNotExist:
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=False, methods=['get'])
     def low_stock_alerts(self, request):
-        low_stock_products = Product.objects.filter(low_stock_alert=True)
+        low_stock_products = Product.objects.filter(low_stock_alert=False)
         serializer = self.get_serializer(low_stock_products, many=True)
         return Response(serializer.data)
 
@@ -57,13 +66,30 @@ class ProductViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return Order.objects.filter(user=user)
+        else:
+            return Order.objects.none()
 
     def perform_create(self, serializer):
-        order = serializer.save()
-        update_stock_levels.delay(order.product.id, order.quantity)
+        order = serializer.save(user=self.request.user)
+        # send order confirmation
         send_order_confirmation.delay(order.id)
+
+        # Update stock levels for each product in the order
+        for order_product in order.order_products.all():
+            update_stock_levels.delay(order_product.product_id, order_product.quantity)
 
     def perform_update(self, serializer):
         order = serializer.save()
+        # Update Status
         update_order_status.delay(order.id)
+
+        # Update stock levels for each product in the order
+        for order_product in order.order_products.all():
+            update_stock_levels.delay(order_product.product_id, order_product.quantity)
