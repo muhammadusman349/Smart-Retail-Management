@@ -15,7 +15,7 @@ class ProductInline(admin.TabularInline):
 
 class OrderAdmin(admin.ModelAdmin):
     search_fields = ['id', 'status']
-    list_display = ('id', 'display_products', 'payment_status', 'status', 'total_amount', 'created_at', 'updated_at')
+    list_display = ('id', 'display_products', 'payment_status', 'status', 'total_amount', 'is_approved', 'created_at', 'updated_at')
     inlines = [ProductInline]
     readonly_fields = ('total_amount',)
 

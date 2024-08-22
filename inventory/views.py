@@ -3,8 +3,9 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Product, Order
-from .serializers import ProductSerializer, OrderSerializer
+from .serializers import ProductSerializer, OrderSerializer, OrderApproveSerializer
 from .tasks import (
     send_order_confirmation,
     update_stock_levels,
@@ -17,7 +18,8 @@ from .tasks import (
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
@@ -67,7 +69,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = []
+    authentication_classes = [JWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
@@ -93,3 +95,27 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Update stock levels for each product in the order
         for order_product in order.order_products.all():
             update_stock_levels.delay(order_product.product_id, order_product.quantity)
+
+
+class OrderApproveView(viewsets.ViewSet):
+    serializer_class = OrderApproveSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    lookup_field = 'id'
+
+    def partial_update(self, request, *args, **kwargs):
+        id = self.kwargs.get('id', None)
+        try:
+            order = Order.objects.get(id=id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.is_approved:
+            return Response({'error': 'Order is already approved.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not request.user.is_owner:
+            return Response({'error': 'Only the owner can approve the order.'}, status=status.HTTP_403_FORBIDDEN)
+
+        order.is_approved = True
+        order.save()
+        return Response({'status': 'Order approved successfully.'}, status=status.HTTP_200_OK)

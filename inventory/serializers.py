@@ -24,7 +24,7 @@ class OrderSerializer(WritableNestedModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'status', 'payment_status', 'return_status', 'total_amount', 'created_at', 'updated_at', 'products']
+        fields = ['id', 'user', 'status', 'payment_status', 'return_status', 'total_amount', 'is_approved', 'created_at', 'updated_at', 'products']
 
     def get_total_amount(self, obj):
         return obj.total_amount
@@ -122,3 +122,10 @@ class OrderSerializer(serializers.ModelSerializer):
         representation['products'] = OrderProductSerializer(instance.order_products.all(), many=True).data
         return representation
 """
+
+
+class OrderApproveSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Order
+        fields = ['is_approved']
