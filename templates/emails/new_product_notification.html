@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>New Product Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #007BFF;
+        }
+        .product-details {
+            margin-bottom: 20px;
+        }
+        .product-details p {
+            margin: 5px 0;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777777;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h2>New Product Added to {{ site_name }}</h2>
+        <div class="product-details">
+            <p><strong>Name:</strong> {{ product.name }}</p>
+            <p><strong>Description:</strong> {{ product.description }}</p>
+            <p><strong>Price:</strong> ${{ product.price }}</p>
+            <p><strong>Quantity:</strong> {{ product.quantity }}</p>
+        </div>
+        <p>You can view the product <a href="{{ site_url }}/products/{{ product.id }}">here</a>.</p>
+        <div class="footer">
+            <p>Thank you for being a valued member of {{ site_name }}.</p>
+        </div>
+    </div>
+</body>
+</html>

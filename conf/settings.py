@@ -197,3 +197,6 @@ CELERY_TIMEZONE = 'UTC'
 
 # Celery Beat
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+SITE_NAME = "SRMS"
+SITE_URL = "http://localhost:8000/inventory"

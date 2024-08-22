@@ -37,7 +37,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=100, null=True, blank=True)
     email = models.EmailField(max_length=50, unique=True, db_index=True)
     profile_picture = models.ImageField(upload_to="profile_pictures/",
-                                        default="profile_pictures/avatar.jpg")
+                                        default="profile_pictures/avatar.jpg",
+                                        null=True, blank=True)
     is_approved = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
