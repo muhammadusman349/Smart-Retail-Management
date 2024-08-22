@@ -64,12 +64,13 @@ def send_order_confirmation(order_id):
         subject = f'Order #{order.id} Confirmation'
         recipient = order.user.email
         from_email = settings.DEFAULT_FROM_EMAIL
+        order_product = OrderProduct.objects.get(order__id=order_id)
 
         # Render HTML content
         html_content = render_to_string('emails/order_confirmation.html', {
             'user_name': order.user.first_name,
             'order_id': order.id,
-            'product_name': order.products.name,
+            'product_name': order_product.product.name,
             'contact_url': "http://localhost:8000/inventory/orders/",
             'current_year': timezone.now().year,
         })
@@ -90,7 +91,6 @@ def send_order_confirmation(order_id):
 def update_order_status(order_id):
     try:
         order = Order.objects.get(id=order_id)
-
         # payment failure
         if order.payment_status == 'failed':
             if order.status in ['pending', 'processed']:
