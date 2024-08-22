@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Product, Order, OrderProduct
+from drf_writable_nested.serializers import WritableNestedModelSerializer
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -11,12 +12,58 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class OrderProductSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OrderProduct
+        fields = ['id', 'product', 'quantity']
+
+
+class OrderSerializer(WritableNestedModelSerializer):
+    products = OrderProductSerializer(source='order_products', many=True)
+    total_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'status', 'payment_status', 'return_status', 'total_amount', 'created_at', 'updated_at', 'products']
+
+    def get_total_amount(self, obj):
+        return obj.total_amount
+
+    def validate(self, attrs):
+        products_data = attrs.get('order_products', [])
+        product_ids = [item['product'] for item in products_data]
+        if len(product_ids) != len(set(product_ids)):
+            raise serializers.ValidationError({'error': 'Duplicate products are not allowed in the same order.'})
+
+        if self.instance:
+            if self.instance.status == 'cancelled' and attrs.get('payment_status', self.instance.payment_status) != 'refunded':
+                raise serializers.ValidationError(
+                    {'error': 'Order cannot be cancelled without refunding payment.'}
+                )
+
+            if self.instance.status == 'delivered' and attrs.get('return_status', self.instance.return_status) != 'not_returned':
+                raise serializers.ValidationError(
+                    {'error': 'Order cannot be marked as delivered if it has been returned.'}
+                )
+
+            if self.instance.status == 'shipped' and attrs.get('status', self.instance.status) == 'pending':
+                raise serializers.ValidationError(
+                    {'error': 'Order cannot move back to pending status once shipped.'}
+                )
+        return attrs
+
+
+# To simplify and enhance code accuracy, the OrderSerializer now uses WritableNestedModelSerializer.
+# This change reduces code length and improves precision by efficiently handling nested serialization and validation.
+
+"""
+
+class OrderProductSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), source='product')
 
     class Meta:
         model = OrderProduct
         fields = ['id', 'product_id', 'quantity']
-
 
 class OrderSerializer(serializers.ModelSerializer):
     products = OrderProductSerializer(source='order_products', many=True)
@@ -74,6 +121,4 @@ class OrderSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['products'] = OrderProductSerializer(instance.order_products.all(), many=True).data
         return representation
-
-    def get_total_amount(self, obj):
-        return obj.total_amount
+"""
