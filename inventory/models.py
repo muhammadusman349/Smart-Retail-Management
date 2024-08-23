@@ -25,6 +25,7 @@ class Order(models.Model):
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=50, choices=PAYMENT_STATUS_CHOICES, default='pending')
     return_status = models.CharField(max_length=50, choices=RETURN_STATUS_CHOICES, default='not_returned', blank=True, null=True)
+    is_approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
