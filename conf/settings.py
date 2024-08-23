@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from django.utils.timezone import timedelta
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -201,3 +202,23 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 SITE_NAME = "SRMS"
 SITE_URL = "http://localhost:8000/inventory"
+
+
+CELERY_BEAT_SCHEDULE = {
+    'schedule-promotions-daily': {
+        'task': 'promotion.tasks.schedule_all_promotions',
+        'schedule': crontab(hour=0, minute=0),  # Run daily
+    },
+    'update-coupon-statuses-daily': {
+        'task': 'promotion.update_coupon_statuses',
+        'schedule': crontab(hour=0, minute=0),  # Run daily
+    },
+    'check-campaign-status-daily': {
+        'task': 'promotion.tasks.check_campaign_status',
+        'schedule': crontab(hour=0, minute=0),  # Run daily
+    },
+    'deactivate-expired-campaigns-daily': {
+        'task': 'promotion.tasks.deactivate_expired_campaigns',
+        'schedule': crontab(hour=0, minute=0),  # Run daily
+    },
+}

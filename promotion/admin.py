@@ -14,13 +14,13 @@ class PromotionAdmin(admin.ModelAdmin):
 
 class CouponAdmin(admin.ModelAdmin):
     form = CouponForm
-    list_display = ('id', 'code', 'discount_amount', 'active', 'usage_limit', 'valid_from', 'valid_until', 'created_by', 'updated_by', 'created_at', 'updated_at')
+    list_display = ('id', 'code', 'discount_amount', 'campaign', 'active', 'usage_limit', 'valid_from', 'valid_until', 'created_by', 'updated_by', 'created_at', 'updated_at')
     search_fields = ('code', 'discount_amount')
     list_filter = ('active', 'valid_from', 'valid_until')
 
 
 class CustomerSegmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'description', 'created_by', 'updated_by', 'created_at', 'updated_at')
+    list_display = ('id', 'name', 'users', 'description', 'created_by', 'updated_by', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
 
 
