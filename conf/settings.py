@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'account',
     'AI',
     'inventory',
+    'promotion'
 ]
 
 MIDDLEWARE = [
