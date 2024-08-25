@@ -3,17 +3,17 @@ from rest_framework.routers import DefaultRouter
 from .views import (
         PromotionView,
         CouponView,
-        ApplyCouponView,
+        RedeemCouponView,
         CustomerSegmentView,
         AssignSegmentView,
         MarketingCampaignView,
-        CampaignReportView
+        CampaignReportView,
         )
 
 router = DefaultRouter()
 router.register(r'promotions', PromotionView)
 router.register(r'coupons', CouponView)
-router.register(r'apply_coupon', ApplyCouponView, basename='apply-coupon')
+router.register(r'redeem_coupon', RedeemCouponView, basename='redeem-coupon')
 router.register(r'customer_segments', CustomerSegmentView)
 router.register(r'assign_segment', AssignSegmentView, basename='assign-segment')
 router.register(r'marketing_campaigns', MarketingCampaignView)
