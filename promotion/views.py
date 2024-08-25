@@ -1,13 +1,15 @@
 from django.utils import timezone
 from django.db.models import Count
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import viewsets, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from .models import Promotion, Coupon, CustomerSegment, MarketingCampaign
 from .tasks import send_segment_assignment_notification
 from .serializers import (
             PromotionSerializer,
             CouponSerializer,
-            ApplyCouponSerializer,
+            RedeemCouponSerializer,
             CustomerSegmentSerializer,
             AssignSegmentSerializer,
             MarketingCampaignSerializer
@@ -20,69 +22,69 @@ class PromotionView(viewsets.ModelViewSet):
     queryset = Promotion.objects.all()
     serializer_class = PromotionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
-    def schedule_promotion(self, promotion):
-        """
-        Activate or deactivate the promotion based on the current date and the start/end dates.
-        """
-        current_date = timezone.now().date()
-        if promotion.start_date and promotion.start_date <= current_date and (not promotion.end_date or promotion.end_date >= current_date):
-            promotion.active = True
-        else:
-            promotion.active = False
-        promotion.save()
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        if user.is_authenticated:
+            serializer = PromotionSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(created_by=user)
+                return Response({"success": "Promotion created successfully.", "Promotion": serializer.data}, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'User must be authenticated to create a promotion.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    def perform_create(self, serializer):
-        promotion = serializer.save(created_by=self.request.user)
-        self.schedule_promotion(promotion)
-
-    def perform_update(self, serializer):
-        promotion = serializer.save(updated_by=self.request.user)
-        self.schedule_promotion(promotion)
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        if user.is_authenticated:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = PromotionSerializer(instance, data=request.data, partial=partial)
+            if serializer.is_valid():
+                serializer.save(updated_by=user)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'User must be authenticated to update a promotion.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class CouponView(viewsets.ModelViewSet):
     queryset = Coupon.objects.all()
-    serializer_class = CouponSerializer,
+    serializer_class = CouponSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    lookup_field = 'id'
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        if user.is_authenticated:
+            serializer = CouponSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(created_by=user)
+                return Response({"success": "Coupon created successfully.", "Coupon": serializer.data}, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "User must be authenticated to create a Coupon."}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def update(self, request, *args, **kwargs):
+        user = self.request.user
+        if user.is_authenticated:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = CouponSerializer(instance, data=request.data, partial=partial)
+            if serializer.is_valid():
+                serializer.save(updated_by=user)
+                return Response({"success": "Coupon updated successfully.", "Coupon": serializer.data}, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "User must be authenticated to update a Coupon."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class RedeemCouponView(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        serializer = CouponSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                "success": "Coupon created successfully.",
-                "coupon": serializer.data
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def redeem_coupon(self, request, pk=None):
-        try:
-            coupon = Coupon.objects.get(pk=pk)
-            if coupon.active:
-                # Logic for redeeming coupon
-                coupon.active = False
-                coupon.save()
-                return Response({"success": "Coupon redeemed successfully."}, status=status.HTTP_200_OK)
-            return Response({"error": "Coupon is not active."}, status=status.HTTP_400_BAD_REQUEST)
-        except Coupon.DoesNotExist:
-            return Response({"error": "Coupon not found."}, status=status.HTTP_404_NOT_FOUND)
-
-    def perform_update(self, serializer):
-        serializer.save(updated_by=self.request.user)
-
-
-class ApplyCouponView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def create(self, request):
-        serializer = ApplyCouponSerializer(data=request.data)
+        serializer = RedeemCouponSerializer(data=request.data)
         if serializer.is_valid():
             coupon = serializer.save()
-            return Response({
-                "success": "Coupon applied successfully.",
-                "discount_amount": coupon.discount_amount
-            }, status=status.HTTP_200_OK)
+            return Response({"success": "Coupon redeemed successfully.", "coupon": coupon.code}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -113,8 +115,8 @@ class AssignSegmentView(viewsets.ViewSet):
             send_segment_assignment_notification.delay(user_ids, segment.id)
 
             return Response({
-                "success": "Users assigned to segment successfully.",
-                "segment": segment.id
+                "segment": segment.name,
+                "users_assigned": [user.name for user in segment.users.all()]
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -123,6 +125,7 @@ class MarketingCampaignView(viewsets.ModelViewSet):
     queryset = MarketingCampaign.objects.all()
     serializer_class = MarketingCampaignSerializer
     permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def create(self, request, *args, **kwargs):
         serializer = MarketingCampaignSerializer(data=request.data)

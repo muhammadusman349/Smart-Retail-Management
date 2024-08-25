@@ -27,6 +27,23 @@ class Promotion(AbstractBase):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        self.schedule_promotion()
+        super().save(*args, **kwargs)
+
+    def schedule_promotion(self):
+        """
+        Activate or deactivate the promotion based on the current date and the start/end dates.
+        """
+        current_date = timezone.now().date()
+        if self.start_date and self.end_date:
+            if self.start_date <= current_date <= self.end_date:
+                self.active = True
+            else:
+                self.active = False
+        else:
+            self.active = False
+
 
 class Coupon(AbstractBase):
     code = models.CharField(max_length=50, unique=True, blank=True)
@@ -34,6 +51,7 @@ class Coupon(AbstractBase):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
     active = models.BooleanField(default=False)
     usage_limit = models.IntegerField(default=1)
+    usage_count = models.IntegerField(default=0)
     valid_from = models.DateField(null=True, blank=True)
     valid_until = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -42,40 +60,35 @@ class Coupon(AbstractBase):
     def __str__(self):
         return self.code
 
-    # For automatically generate a unique coupon code
     def save(self, *args, **kwargs):
-        if not self.code:
-            self.code = str(uuid.uuid4()).replace('-', '').upper()[:10]
+        if not self.pk and not self.code:
+            self.code = self.generate_code()
+        self.active_status()
         super().save(*args, **kwargs)
 
-    def schedule_coupon(self):
+    # generate a unique coupon code
+    def generate_code(self):
+        max_attempts = 100
+        for _ in range(max_attempts):
+            code = str(uuid.uuid4()).replace('-', '').upper()[:10]
+            if not Coupon.objects.filter(code=code).exists():
+                return code
+        raise RuntimeError("Failed to generate a unique coupon code after several attempts")
+
+    def active_status(self):
         """
         Set the active status based on the current date and the coupon's validity period.
         """
         current_date = timezone.now().date()
-        if self.valid_from and current_date < self.valid_from:
-            self.active = False
-        elif self.valid_until and current_date > self.valid_until:
-            self.active = False
+        if self.valid_from and self.valid_until:
+            if self.valid_from <= current_date <= self.valid_until:
+                self.active = True
+            else:
+                self.active = False
         else:
-            self.active = True
-
-    def validate_coupon(self):
-        self.schedule_coupon()
-        current_date = timezone.now().date()
-        if not self.active:
-            raise ValidationError("This coupon is not active.")
-        if self.valid_from and current_date < self.valid_from:
-            raise ValidationError("This coupon is not yet valid")
-        if self.valid_until and current_date > self.valid_until:
-            raise ValidationError("This coupon has expired.")
-        if self.usage_limit <= 0:
-            raise ValidationError("This coupon has exceeded its usage limit.")
-
-    def use_coupon(self):
-        self.validate_coupon()
-        self.usage_limit -= 1
-        self.save()
+            self.active = False
+        if self.usage_count >= self.usage_limit:
+            self.active = False
 
 
 class CustomerSegment(AbstractBase):
