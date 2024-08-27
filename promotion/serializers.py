@@ -1,10 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
 from drf_writable_nested.serializers import WritableNestedModelSerializer
 from .models import Promotion, Coupon, CustomerSegment, MarketingCampaign
-from account.models import User
-from account.serializers import UserSerializer
 
 
 class PromotionSerializer(serializers.ModelSerializer):
@@ -121,10 +118,9 @@ class RedeemCouponSerializer(serializers.Serializer):
         return coupon
 
 
-class CustomerSegmentSerializer(WritableNestedModelSerializer):
+class CustomerSegmentSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.name", read_only=True)
     updated_by = serializers.CharField(source="updated_by.name", read_only=True)
-    users = UserSerializer(many=True)
 
     class Meta:
         model = CustomerSegment
@@ -140,28 +136,28 @@ class CustomerSegmentSerializer(WritableNestedModelSerializer):
             ]
 
 
-class AssignSegmentSerializer(serializers.Serializer):
-    segment_id = serializers.IntegerField()
-    users = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+# class AssignSegmentSerializer(serializers.Serializer):
+#     segment_id = serializers.IntegerField()
+#     users = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
 
-    def validate(self, data):
-        segment_id = data.get('segment_id')
-        users = data.get('users')
+#     def validate(self, data):
+#         segment_id = data.get('segment_id')
+#         users = data.get('users')
 
-        if not CustomerSegment.objects.filter(id=segment_id).exists():
-            raise serializers.ValidationError("Customer segment does not exist.")
-        if not users:
-            raise serializers.ValidationError("At least one user must be selected.")
+#         if not CustomerSegment.objects.filter(id=segment_id).exists():
+#             raise serializers.ValidationError("Customer segment does not exist.")
+#         if not users:
+#             raise serializers.ValidationError("At least one user must be selected.")
 
-        return data
+#         return data
 
-    def save(self):
-        segment_id = self.validated_data['segment_id']
-        users = self.validated_data['users']
-        segment = CustomerSegment.objects.get(id=segment_id)
-        segment.users.set(users)
-        segment.save()
-        return segment
+#     def save(self):
+#         segment_id = self.validated_data['segment_id']
+#         users = self.validated_data['users']
+#         segment = CustomerSegment.objects.get(id=segment_id)
+#         segment.users.set(users)
+#         segment.save()
+#         return segment
 
 
 class MarketingCampaignSerializer(serializers.ModelSerializer):
@@ -178,7 +174,7 @@ class MarketingCampaignSerializer(serializers.ModelSerializer):
             "target_segment",
             "active",
             "start_date",
-            "end_date ",
+            "end_date",
             "created_by",
             "updated_by",
             "created_at",
