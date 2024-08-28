@@ -11,8 +11,8 @@ from .serializers import (
             CouponSerializer,
             RedeemCouponSerializer,
             CustomerSegmentSerializer,
-            AssignSegmentSerializer,
-            MarketingCampaignSerializer
+            MarketingCampaignSerializer,
+            # AssignSegmentSerializer,
             )
 
 # Create your views here.
@@ -100,25 +100,25 @@ class CustomerSegmentView(viewsets.ModelViewSet):
         serializer.save(updated_by=self.request.user)
 
 
-class AssignSegmentView(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+# class AssignSegmentView(viewsets.ViewSet):
+#     permission_classes = [permissions.IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        """
-        Assign users to a specific customer segment.
-        """
-        serializer = AssignSegmentSerializer(data=request.data)
-        if serializer.is_valid():
-            segment = serializer.save()
+#     def create(self, request, *args, **kwargs):
+#         """
+#         Assign users to a specific customer segment.
+#         """
+#         serializer = AssignSegmentSerializer(data=request.data)
+#         if serializer.is_valid():
+#             segment = serializer.save()
 
-            user_ids = serializer.validated_data.get('user_ids')
-            send_segment_assignment_notification.delay(user_ids, segment.id)
+#             user_ids = serializer.validated_data.get('user_ids')
+#             send_segment_assignment_notification.delay(user_ids, segment.id)
 
-            return Response({
-                "segment": segment.name,
-                "users_assigned": [user.name for user in segment.users.all()]
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#             return Response({
+#                 "segment": segment.name,
+#                 "users_assigned": [user.name for user in segment.users.all()]
+#             }, status=status.HTTP_200_OK)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MarketingCampaignView(viewsets.ModelViewSet):
