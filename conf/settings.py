@@ -63,7 +63,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "applog.middleware.queryhunter_middleware.CustomQueryHunterMiddleware"
+    "applog.middleware.queryhunter_middleware.CustomQueryHunterMiddleware",
+    "applog.middleware.api_middleware.APILogMiddleware",
 ]
 
 
