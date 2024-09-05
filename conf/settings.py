@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     'account',
     'AI',
     'inventory',
-    'promotion'
+    'promotion',
+    'applog',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +63,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "account.custom_queryhunter_middleware.CustomQueryHunterMiddleware"
+    "applog.middleware.queryhunter_middleware.CustomQueryHunterMiddleware"
 ]
 
 
