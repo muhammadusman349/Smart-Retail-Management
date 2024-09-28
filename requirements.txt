@@ -14,3 +14,4 @@ paho-mqtt==2.1.0
 joblib==1.4.2
 numpy==2.0.1
 scikit-learn==1.5.1
+stripe==10.12.0
