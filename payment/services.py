@@ -76,6 +76,7 @@ class PaymentService:
         payment = Payment.objects.create(
             order=order,
             payment_method='cheque',
+            transaction_id=check_number,
             transaction_type='Debit',
             payment_status='pending',
             paid_amount=amount,

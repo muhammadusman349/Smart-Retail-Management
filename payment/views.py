@@ -1,5 +1,6 @@
 from django.views.generic import TemplateView
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .serializers import PaymentSerializer
 from inventory.models import Order
@@ -62,6 +63,8 @@ class PaymentCreateView(generics.CreateAPIView):
                 "payment_status": payment.payment_status
             }, status=status.HTTP_201_CREATED)
 
+        return Response({"error": "Invalid payment method."}, status=status.HTTP_400_BAD_REQUEST)
+
         # elif payment_method == 'stripe':
         #     payment_method_id = request.data.get('payment_method_id')
         #     print("payment_m_id", payment_method_id)
@@ -81,7 +84,34 @@ class PaymentCreateView(generics.CreateAPIView):
         #     else:
         #         return Response({"error": "Stripe payment failed."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"error": "Invalid payment method."}, status=status.HTTP_400_BAD_REQUEST)
+
+class UpdateChequePaymentStatusView(viewsets.ViewSet):
+    serializer_class = PaymentSerializer
+    permission_classes = []
+    authentication_classes = []
+    lookup_field = 'id'
+
+    def partial_update(self, request, *args, **kwargs):
+        payment_id = self.kwargs.get('id', None)
+
+        try:
+            payment = Payment.objects.get(id=payment_id, payment_method='cheque')
+        except Payment.DoesNotExist:
+            return Response({"error": "Cheque payment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the payment is still pending
+        if payment.payment_status != 'pending':
+            return Response({"error": "Only pending payments can be updated."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the payment status to 'completed'
+        payment.payment_status = 'completed'
+        payment.save()
+
+        return Response({
+            "message": "Cheque payment status updated to completed.",
+            "payment_id": payment.id,
+            "payment_status": payment.payment_status
+        }, status=status.HTTP_200_OK)
 
 
 class PaymentTemplateView(TemplateView):
@@ -90,3 +120,7 @@ class PaymentTemplateView(TemplateView):
 
 class PaymentSuccess(TemplateView):
     template_name = 'payments/payment_succuss.html'
+
+
+class UpdateChequePaymentStatusTemplateView(TemplateView):
+    template_name = "payments/update_cheque_payment_status.html"

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Cheque Payment Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .loading img {
+            width: 50px;
+            height: 50px;
+        }
+    </style>
+    <script>
+        async function updateChequePaymentStatus(event) {
+            event.preventDefault();
+            const paymentId = document.getElementById('payment-id').value;
+            const messageElement = document.querySelector('.message');
+            const loadingElement = document.querySelector('.loading');
+
+            if (!paymentId) {
+                messageElement.innerHTML = '<p style="color: red;">Please enter the Payment ID</p>';
+                return;
+            }
+
+            messageElement.innerHTML = '';  // Clear previous messages
+            loadingElement.style.display = 'block';  // Show loading
+
+            const url = `/payment-api/update_cheque_payment/${paymentId}/`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')  // Include CSRF token if required
+                    },
+                    credentials: 'same-origin',
+                });
+
+                const result = await response.json();
+                loadingElement.style.display = 'none';  // Hide loading
+
+                if (response.status === 200) {
+                    messageElement.innerHTML = '<p style="color: green;">Payment status updated successfully</p>';
+                } else {
+                    messageElement.innerHTML = `<p style="color: red;">Error: ${result.error}</p>`;
+                }
+            } catch (error) {
+                loadingElement.style.display = 'none';  // Hide loading
+                messageElement.innerHTML = '<p style="color: red;">An unexpected error occurred. Please try again.</p>';
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Update Cheque Payment Status</h2>
+
+        <form id="update-payment-form" onsubmit="updateChequePaymentStatus(event)">
+            <label for="payment-id">Payment Id:</label>
+            <input type="number" id="payment-id" name="payment-id" placeholder="Enter Payment ID" required>
+            
+            <button type="submit">Update Payment Status</button>
+        </form>
+
+        <div class="loading">
+            <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading...">
+        </div>
+
+        <div class="message"></div>
+    </div>
+
+</body>
+</html>
