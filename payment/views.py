@@ -22,6 +22,11 @@ class PaymentCreateView(generics.CreateAPIView):
         except Order.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Check if the order is approved
+        if not order.is_approved:
+            return Response({"error": "This order has not been approved. Please approve the order before making a payment."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         # Check if the order has a completed payment
         if Payment.objects.filter(order=order, payment_status='completed').exists():
             return Response({"error": "This order has already been paid."}, status=status.HTTP_400_BAD_REQUEST)
@@ -35,8 +40,6 @@ class PaymentCreateView(generics.CreateAPIView):
 
         if payment_method == 'credit_card':
             payment_method_id = request.data.get('payment_method_id')
-            print("payment_m_id", payment_method_id)
-
             payment = PaymentService.process_credit_card_payment(request, order, amount, payment_method_id)
 
             if payment:
