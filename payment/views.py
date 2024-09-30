@@ -22,6 +22,11 @@ class PaymentCreateView(generics.CreateAPIView):
         except Order.DoesNotExist:
             return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Check if the order is approved
+        if not order.is_approved:
+            return Response({"error": "This order has not been approved. Please approve the order before making a payment."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         # Check if the order has a completed payment
         if Payment.objects.filter(order=order, payment_status='completed').exists():
             return Response({"error": "This order has already been paid."}, status=status.HTTP_400_BAD_REQUEST)
@@ -35,8 +40,6 @@ class PaymentCreateView(generics.CreateAPIView):
 
         if payment_method == 'credit_card':
             payment_method_id = request.data.get('payment_method_id')
-            print("payment_m_id", payment_method_id)
-
             payment = PaymentService.process_credit_card_payment(request, order, amount, payment_method_id)
 
             if payment:
@@ -99,7 +102,7 @@ class UpdateChequePaymentStatusView(viewsets.ViewSet):
         except Payment.DoesNotExist:
             return Response({"error": "Cheque payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the payment is still pending
+        # Ensure the payment is still in a 'pending' state
         if payment.payment_status != 'pending':
             return Response({"error": "Only pending payments can be updated."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -107,10 +110,17 @@ class UpdateChequePaymentStatusView(viewsets.ViewSet):
         payment.payment_status = 'completed'
         payment.save()
 
+        # Fetch the related order and update its payment status
+        order = payment.order
+        order.payment_status = 'completed'
+        order.save()
+
         return Response({
             "message": "Cheque payment status updated to completed.",
             "payment_id": payment.id,
-            "payment_status": payment.payment_status
+            "payment_status": payment.payment_status,
+            "order_id": order.id,
+            "order_payment_status": order.payment_status
         }, status=status.HTTP_200_OK)
 
 
@@ -119,7 +129,7 @@ class PaymentTemplateView(TemplateView):
 
 
 class PaymentSuccess(TemplateView):
-    template_name = 'payments/payment_succuss.html'
+    template_name = 'payments/payment_success.html'
 
 
 class UpdateChequePaymentStatusTemplateView(TemplateView):

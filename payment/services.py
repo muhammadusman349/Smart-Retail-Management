@@ -52,6 +52,9 @@ class PaymentService:
                 convenience_fee=convenience_fee,
                 total_amount=total_amount
             )
+            # Update order payment status to 'completed'
+            order.payment_status = 'completed'
+            order.save()
             return payment
 
         except stripe.error.StripeError as e:
