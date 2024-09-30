@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Form</title>
+    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe Library -->
+</head>
+<body>
+    <h2>Order Payment</h2>
+    <form id="payment-form">
+        <label for="order">Order ID:</label>
+        <input type="text" id="order" name="order" required><br><br>
+
+        <label for="payment_method">Payment Method:</label>
+        <select id="payment_method" name="payment_method" required>
+            <option value="credit_card">Credit Card</option>
+            <option value="cheque">Cheque</option>
+            {% comment %} <option value="stripe">Stripe</option> {% endcomment %}
+        </select><br><br>
+
+        <div id="credit-card-fields" style="display:none;">
+            <label for="card-element">Card Details:</label>
+            <div id="card-element"><!-- A Stripe Element will be inserted here. --></div>
+            <div id="card-errors" role="alert"></div>
+        </div>
+
+        <div id="cheque-fields" style="display:none;">
+            <label for="check_number">Cheque Number:</label>
+            <input type="text" id="check_number" name="check_number"><br><br>
+        </div>
+
+        <button type="submit">Submit Payment</button>
+    </form>
+
+    <div id="payment-status"></div>
+
+    <script>
+        const form = document.getElementById('payment-form');
+        const paymentMethodSelect = document.getElementById('payment_method');
+        const creditCardFields = document.getElementById('credit-card-fields');
+        const chequeFields = document.getElementById('cheque-fields');
+        const stripePublicKey = 'pk_test_51PWYwaFYNSKnDpYgdk3GmRVbTMhHksLt6poYUT8CoSQ89CtcUvJY9dawB1MB54ALksQWxFTemPnMqWcKISujMb3S00lsKOKBm7'; // Replace with your Stripe public key
+        const stripe = Stripe(stripePublicKey);
+        const elements = stripe.elements();
+
+        // Create an instance of the card Element
+        const cardElement = elements.create('card');
+        cardElement.mount('#card-element');
+
+        // Show/hide payment fields based on the selected method
+        paymentMethodSelect.addEventListener('change', function() {
+            const selectedMethod = this.value;
+            creditCardFields.style.display = selectedMethod === 'credit_card' ? 'block' : 'none';
+            chequeFields.style.display = selectedMethod === 'cheque' ? 'block' : 'none';
+
+            // Also hide Stripe fields (if any) when switching to Credit Card
+            {% comment %} if (selectedMethod === 'stripe') {
+                creditCardFields.style.display = 'none';
+            } {% endcomment %}
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const order = document.getElementById('order').value;
+            const paymentMethod = paymentMethodSelect.value;
+            const checkNumber = document.getElementById('check_number').value;
+
+            // Prepare the payment data
+            let paymentData = {
+                order: order,
+                payment_method: paymentMethod,
+            };
+
+            if (paymentMethod === 'cheque') {
+                paymentData.check_number = checkNumber;
+            } else if (paymentMethod === 'credit_card') {
+                // Create a Payment Method with Stripe
+                const { paymentMethod: stripePaymentMethod, error } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardElement,
+                });
+
+                if (error) {
+                    // Show error in payment form
+                    document.getElementById('card-errors').innerText = error.message;
+                    return;
+                }
+
+                paymentData.payment_method_id = stripePaymentMethod.id; // Correct key to match backend
+            }
+
+            // Send request to the API
+            try {
+                const response = await fetch('/payment-api/payments/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(paymentData),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('payment-status').innerText = 'Payment successful! ' + JSON.stringify(result);
+                } else {
+                    document.getElementById('payment-status').innerText = 'Payment failed: ' + JSON.stringify(result);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('payment-status').innerText = 'Payment failed: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

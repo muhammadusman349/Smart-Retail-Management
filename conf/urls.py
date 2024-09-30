@@ -24,5 +24,6 @@ urlpatterns = [
     path('inventory/', include('inventory.urls')),
     path('sale_marketing/', include('promotion.urls')),
     path('payment-api/', include('payment.urls')),
+    path('webhook/' , include('webhooks.urls')),
 
 ]
