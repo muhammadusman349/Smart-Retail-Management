@@ -13,7 +13,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'transaction_id',
             'transaction_type',
             'paid_amount',
-            'convenience_fee'
+            'convenience_fee',
             'total_amount',
             'check_number',
             'excel_file',

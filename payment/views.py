@@ -99,7 +99,7 @@ class UpdateChequePaymentStatusView(viewsets.ViewSet):
         except Payment.DoesNotExist:
             return Response({"error": "Cheque payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the payment is still pending
+        # Ensure the payment is still in a 'pending' state
         if payment.payment_status != 'pending':
             return Response({"error": "Only pending payments can be updated."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -107,10 +107,17 @@ class UpdateChequePaymentStatusView(viewsets.ViewSet):
         payment.payment_status = 'completed'
         payment.save()
 
+        # Fetch the related order and update its payment status
+        order = payment.order
+        order.payment_status = 'completed'
+        order.save()
+
         return Response({
             "message": "Cheque payment status updated to completed.",
             "payment_id": payment.id,
-            "payment_status": payment.payment_status
+            "payment_status": payment.payment_status,
+            "order_id": order.id,
+            "order_payment_status": order.payment_status
         }, status=status.HTTP_200_OK)
 
 
