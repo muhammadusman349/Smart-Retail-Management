@@ -3,114 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Form</title>
+    <title>Order Payment</title>
     <script src="https://js.stripe.com/v3/"></script> <!-- Stripe Library -->
+    <style>
+        /* Add styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .form-section {
+            display: none;
+        }
+        #loading {
+            display: none; /* Hide loading spinner by default */
+            text-align: center;
+        }
+        .card-errors {
+            color: red;
+        }
+    </style>
 </head>
 <body>
-    <h2>Order Payment</h2>
-    <form id="payment-form">
-        <label for="order">Order ID:</label>
-        <input type="text" id="order" name="order" required><br><br>
+    <div class="container">
+        <h2>Order Payment</h2>
+        <form id="payment-form">
+            <label for="order">Order ID:</label>
+            <input type="text" id="order" name="order" placeholder="Enter Order ID" required>
 
-        <label for="payment_method">Payment Method:</label>
-        <select id="payment_method" name="payment_method" required>
-            <option value="credit_card">Credit Card</option>
-            <option value="cheque">Cheque</option>
-            {% comment %} <option value="stripe">Stripe</option> {% endcomment %}
-        </select><br><br>
+            <label for="payment_method">Payment Method:</label>
+            <select id="payment_method" name="payment_method" required>
+                <option value="">Select Payment Method</option>
+                <option value="credit_card">Credit Card</option>
+                <option value="cheque">Cheque</option>
+            </select>
 
-        <div id="credit-card-fields" style="display:none;">
-            <label for="card-element">Card Details:</label>
-            <div id="card-element"><!-- A Stripe Element will be inserted here. --></div>
-            <div id="card-errors" role="alert"></div>
+            <div id="credit-card-fields" class="form-section">
+                <label for="card-element">Card Details:</label>
+                <div id="card-element"><!-- A Stripe Element will be inserted here. --></div>
+                <div id="card-errors" class="card-errors"></div>
+            </div>
+
+            <div id="cheque-fields" class="form-section">
+                <label for="check_number">Cheque Number:</label>
+                <input type="text" id="check_number" name="check_number" placeholder="Enter Cheque Number">
+            </div>
+
+            <button type="submit" disabled id="submit-button">Submit Payment</button>
+        </form>
+
+        <div id="loading">
+            <img src="https://i.gifer.com/ZZ5H.gif" alt="Loading...">
         </div>
 
-        <div id="cheque-fields" style="display:none;">
-            <label for="check_number">Cheque Number:</label>
-            <input type="text" id="check_number" name="check_number"><br><br>
-        </div>
-
-        <button type="submit">Submit Payment</button>
-    </form>
-
-    <div id="payment-status"></div>
+        <div id="payment-status"></div>
+    </div>
 
     <script>
         const form = document.getElementById('payment-form');
         const paymentMethodSelect = document.getElementById('payment_method');
         const creditCardFields = document.getElementById('credit-card-fields');
         const chequeFields = document.getElementById('cheque-fields');
-        const stripePublicKey = 'pk_test_51PWYwaFYNSKnDpYgdk3GmRVbTMhHksLt6poYUT8CoSQ89CtcUvJY9dawB1MB54ALksQWxFTemPnMqWcKISujMb3S00lsKOKBm7'; // Replace with your Stripe public key
+        const submitButton = document.getElementById('submit-button');
+        const stripePublicKey = 'pk_test_51PWYwaFYNSKnDpYgdk3GmRVbTMhHksLt6poYUT8CoSQ89CtcUvJY9dawB1MB54ALksQWxFTemPnMqWcKISujMb3S00lsKOKBm7'; 
         const stripe = Stripe(stripePublicKey);
         const elements = stripe.elements();
 
-        // Create an instance of the card Element
+        // Create a Stripe card element
         const cardElement = elements.create('card');
         cardElement.mount('#card-element');
 
-        // Show/hide payment fields based on the selected method
-        paymentMethodSelect.addEventListener('change', function() {
-            const selectedMethod = this.value;
-            creditCardFields.style.display = selectedMethod === 'credit_card' ? 'block' : 'none';
-            chequeFields.style.display = selectedMethod === 'cheque' ? 'block' : 'none';
+        // Ensure both sections are hidden when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            creditCardFields.style.display = 'none';  // Hide credit card fields
+            chequeFields.style.display = 'none';      // Hide cheque fields
+        });
 
-            // Also hide Stripe fields (if any) when switching to Credit Card
-            {% comment %} if (selectedMethod === 'stripe') {
+        // Enable submit button when a payment method is selected
+        paymentMethodSelect.addEventListener('change', function () {
+            const selectedMethod = this.value;
+            submitButton.disabled = selectedMethod === ''; // Disable button if no method selected
+
+            // Show credit card fields if 'credit_card' is selected
+            if (selectedMethod === 'credit_card') {
+                creditCardFields.style.display = 'block';
+                chequeFields.style.display = 'none';
+            }
+            // Show cheque fields if 'cheque' is selected
+            else if (selectedMethod === 'cheque') {
+                chequeFields.style.display = 'block';
                 creditCardFields.style.display = 'none';
-            } {% endcomment %}
+            }
+            // Hide both sections if no valid payment method is selected
+            else {
+                creditCardFields.style.display = 'none';
+                chequeFields.style.display = 'none';
+            }
         });
 
         // Handle form submission
-        form.addEventListener('submit', async function(event) {
+        form.addEventListener('submit', async function (event) {
             event.preventDefault();
+            document.getElementById('loading').style.display = 'block';
 
             const order = document.getElementById('order').value;
             const paymentMethod = paymentMethodSelect.value;
             const checkNumber = document.getElementById('check_number').value;
 
-            // Prepare the payment data
-            let paymentData = {
-                order: order,
-                payment_method: paymentMethod,
-            };
+            let paymentData = { order, payment_method: paymentMethod };
 
             if (paymentMethod === 'cheque') {
                 paymentData.check_number = checkNumber;
             } else if (paymentMethod === 'credit_card') {
-                // Create a Payment Method with Stripe
                 const { paymentMethod: stripePaymentMethod, error } = await stripe.createPaymentMethod({
                     type: 'card',
                     card: cardElement,
                 });
 
                 if (error) {
-                    // Show error in payment form
                     document.getElementById('card-errors').innerText = error.message;
+                    document.getElementById('loading').style.display = 'none';
                     return;
                 }
 
-                paymentData.payment_method_id = stripePaymentMethod.id; // Correct key to match backend
+                paymentData.payment_method_id = stripePaymentMethod.id;
             }
 
-            // Send request to the API
             try {
                 const response = await fetch('/payment-api/payments/', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(paymentData),
                 });
 
                 const result = await response.json();
+                document.getElementById('loading').style.display = 'none';
 
                 if (response.ok) {
-                    document.getElementById('payment-status').innerText = 'Payment successful! ' + JSON.stringify(result);
+                    alert('Payment successful! Redirecting to success page...');
+                    window.location.href = '/payment-api/success/';
                 } else {
                     document.getElementById('payment-status').innerText = 'Payment failed: ' + JSON.stringify(result);
                 }
             } catch (error) {
-                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
                 document.getElementById('payment-status').innerText = 'Payment failed: ' + error.message;
             }
         });

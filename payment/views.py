@@ -119,7 +119,7 @@ class PaymentTemplateView(TemplateView):
 
 
 class PaymentSuccess(TemplateView):
-    template_name = 'payments/payment_succuss.html'
+    template_name = 'payments/payment_success.html'
 
 
 class UpdateChequePaymentStatusTemplateView(TemplateView):
