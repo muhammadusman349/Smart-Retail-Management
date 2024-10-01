@@ -11,5 +11,5 @@ transaction_type_choices = [
 PAYMENT_METHOD_CHOICES = [
         ('credit_card', 'Credit Card'),
         ('cheque', 'Cheque'),
-        ('stripe', 'Stripe')
+        # ('stripe', 'Stripe')
     ]
